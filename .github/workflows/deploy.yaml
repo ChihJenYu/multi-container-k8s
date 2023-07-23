@@ -1,0 +1,67 @@
+name: Build and deploy multi-container-k8s
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+  GKE_CLUSTER: multi-cluster   # Add your cluster name here.
+  GKE_ZONE: asia-southeast2-c
+  SHA: $(git rev-parse HEAD)
+
+jobs:
+  setup-build-publish-deploy:
+    name: Setup, Build, Publish, and Deploy
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Test
+      run: |-
+        echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        docker build -t chihjenyu/multi-container-client-test -f ./client/Dockerfile.dev ./client
+        docker run -e CI=true chihjenyu/multi-container-client-test npm run test
+
+    - name: Setup gcloud CLI
+      uses: google-github-actions/setup-gcloud@1bee7de035d65ec5da40a31f8589e240eba8fde5
+      with:
+        service_account_key: ${{ secrets.GKE_SA_KEY }}
+        project_id: ${{ secrets.GKE_PROJECT }}
+
+    - name: Configure gcloud CLI Docker credential helper
+      run: |-
+        gcloud --quiet auth configure-docker
+
+    # Get the GKE credentials so we can deploy to the cluster
+    - name: Get GKE credentials for deployment
+      uses: google-github-actions/get-gke-credentials@db150f2cc60d1716e61922b832eae71d2a45938f
+      with:
+        cluster_name: ${{ env.GKE_CLUSTER }}
+        location: ${{ env.GKE_ZONE }}
+        credentials: ${{ secrets.GKE_SA_KEY }}
+
+    - name: Build Docker image
+      run: |-
+        docker build -t chihjenyu/multi-container-client:latest -t chihjenyu/multi-container-client:${{ env.SHA }} -f ./client/Dockerfile ./client
+        docker build -t chihjenyu/multi-container-server:latest -t chihjenyu/multi-container-server:${{ env.SHA }} -f ./server/Dockerfile ./server
+        docker build -t chihjenyu/multi-container-worker:latest -t chihjenyu/multi-container-worker:${{ env.SHA }} -f ./worker/Dockerfile ./worker
+
+
+    - name: Push to Dockerhub
+      run: |-
+        docker push chihjenyu/multi-container-client:latest
+        docker push chihjenyu/multi-container-server:latest
+        docker push chihjenyu/multi-container-worker:latest
+
+        docker push chihjenyu/multi-container-client:${{ env.SHA }}
+        docker push chihjenyu/multi-container-server:${{ env.SHA }}
+        docker push chihjenyu/multi-container-worker:${{ env.SHA }}
+
+    - name: Apply
+      run: |-
+        kubectl apply -f k8s
+        kubectl set image deployments/server-deployment server=chihjenyu/multi-container-server:${{ env.SHA }}
+        kubectl set image deployments/client-deployment client=chihjenyu/multi-container-client:${{ env.SHA }}
+        kubectl set image deployments/worker-deployment worker=chihjenyu/multi-container-worker:${{ env.SHA }}
