@@ -24,10 +24,18 @@ jobs:
         docker build -t chihjenyu/multi-container-client-test -f ./client/Dockerfile.dev ./client
         docker run -e CI=true chihjenyu/multi-container-client-test npm run test
 
-    - name: Set service key
+    # Use service account key
+    # - name: Set service key
+    #   uses: 'google-github-actions/auth@v0'
+    #   with:
+    #     credentials_json: '${{ secrets.GKE_SA_KEY }}'
+
+    # Use workload identity provider
+    - name: Set Identity Provider
       uses: 'google-github-actions/auth@v0'
       with:
-        credentials_json: '${{ secrets.GKE_SA_KEY }}'
+        workload_identity_provider: 'projects/835934964283/locations/global/workloadIdentityPools/default-workload-identity-pool/providers/gh-workload-identity-provider'
+        service_account: 'github-actions-deploy@core-crowbar-393010.iam.gserviceaccount.com'
 
     - name: Setup gcloud CLI
       uses: google-github-actions/setup-gcloud@1bee7de035d65ec5da40a31f8589e240eba8fde5
