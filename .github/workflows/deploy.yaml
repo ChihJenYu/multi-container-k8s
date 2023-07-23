@@ -3,7 +3,7 @@ name: Build and deploy multi-container-k8s
 on:
   push:
     branches:
-      - main
+      - master
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
