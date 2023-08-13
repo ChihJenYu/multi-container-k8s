@@ -1,0 +1,23 @@
+apiVersion: cert-manager.io/v1
+# Issuer and ClusterIssuer
+# Issuer can only be used in one namespace
+# ClusterIssuer can be used in mutiple namespaces
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    email: jasonyu0722@gmail.com
+    server: https://acme-v02.api.letsencrypt.org/directory
+    # HTTP01 challenge using nginx
+    # per letsencrypt doc:
+    # This is the most common challenge type today. Let’s Encrypt gives a token to your ACME client, and your ACME client puts a file on your web server at http://<YOUR_DOMAIN>/.well-known/acme-challenge/<TOKEN> containing the token and a thumbprint of the user’s account key
+    solvers:
+    - http01:
+        ingress:
+          # the annotation `kubernetes.io/ingress.class` in ingress controller
+          ingressClassName: 'nginx'
+    # this is the token given to our ACME client by Let's Encrypt
+    # NOT related to the K8S secret resource created by the Certificate resource
+    privateKeySecretRef:
+      name: letsencrypt-prod-cert
