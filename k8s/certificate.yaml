@@ -1,0 +1,25 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: sheepish-shiba-fyi
+spec:
+  # name for the created Certificate secret
+  secretName: sheepish-shiba-fyi-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: sheepish-shiba.fyi
+  # list of CNAMEs
+  dnsNames:
+    - sheepish-shiba.fyi
+    - www.sheepish-shiba.fyi
+  acme:
+    config:
+      - http01:
+          ingressClass: 'nginx'
+        # cert-manager will create a pod and service (ingress)
+        # that exposes an HTTP endpoint on these domains
+        # which satisfy the http01 challenge
+        domains:
+          - sheepish-shiba.fyi
+          - www.sheepish-shiba.fyi
