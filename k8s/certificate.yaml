@@ -10,16 +10,9 @@ spec:
     kind: ClusterIssuer
   commonName: sheepish-shiba.fyi
   # list of CNAMEs
+  # cert-manager will create a pod and service (ingress)
+  # that exposes an HTTP endpoint on these domains
+  # which satisfy the http01 challenge
   dnsNames:
     - sheepish-shiba.fyi
     - www.sheepish-shiba.fyi
-  acme:
-    config:
-      - http01:
-          ingressClass: 'nginx'
-        # cert-manager will create a pod and service (ingress)
-        # that exposes an HTTP endpoint on these domains
-        # which satisfy the http01 challenge
-        domains:
-          - sheepish-shiba.fyi
-          - www.sheepish-shiba.fyi
